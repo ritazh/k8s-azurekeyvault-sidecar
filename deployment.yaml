@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: azurekeyvault-sidecar
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: azurekeyvault-sidecar
+    spec:
+      containers:
+      - name: sidecar
+        image: ritazh/k8s-azurekeyvault-sidecar
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+        env:
+        - name: VAULT_NAME
+          value: k8svaultsidecar
+        volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+      - name: nginx
+        image: nginx
+        resources:
+          limits:
+            cpu: 400m
+            memory: 256Mi
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        volumeMounts:
+        - name: secrets
+          mountPath: /etc/secrets
+      volumes:
+      - name: secrets
+        emptyDir: {}
