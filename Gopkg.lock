@@ -2,14 +2,44 @@
 
 
 [[projects]]
+  name = "github.com/Azure/go-autorest"
+  packages = ["autorest","autorest/adal","autorest/azure","autorest/date"]
+  revision = "eaa7994b2278094c904d31993d26f56324db3052"
+  version = "v10.8.1"
+
+[[projects]]
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
+
+[[projects]]
+  name = "github.com/ghodss/yaml"
+  packages = ["."]
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/golang/glog"
   packages = ["."]
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/crypto"
+  packages = ["pkcs12","pkcs12/internal/rc2"]
+  revision = "21052ae46654ecf18dfdba0f7c12701a1e2b3164"
+
+[[projects]]
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
+  version = "v2.2.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "454135964cda5a10cad248157b586667c7a743e1417af192221b5cecbd0bae20"
+  inputs-digest = "dc30a7a57fdbe9751a40057333cdbb159518e8362abe91069167f02e2c12801b"
   solver-name = "gps-cdcl"
   solver-version = 1

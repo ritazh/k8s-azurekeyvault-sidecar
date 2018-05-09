@@ -10,5 +10,8 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+.gitignore
+
 k8s-azurekeyvault-sidecar
 vendor
+azure.json
