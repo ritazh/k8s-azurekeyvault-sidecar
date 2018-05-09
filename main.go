@@ -21,18 +21,21 @@ import (
 const (
 	program		= "k8s-azurekeyvault-sidecar"
 	version     = "0.0.1"
+	configFilePath  = "azure.json"
 )
 
-// Config is a collection of configs
-type Config struct {
+// Option is a collection of configs
+type Option struct {
 	// the name of the Azure Key Vault instance
 	vaultName string
 	// version flag
 	showVersion bool
+	// azure configs 
+	azConfig *AzureAuthConfig
 }
 
 var (
-	configs Config
+	options Option
 )
 
 func main() {
@@ -43,31 +46,35 @@ func main() {
 	if err := parseConfigs(); err != nil {
 		showUsage("invalid config, %s", err)
 	}
-	if configs.showVersion {
+	if options.showVersion {
 		fmt.Printf("%s %s\n", program, version)
-		return
+		fmt.Printf("%s \n", options.azConfig.SubscriptionID)
 	}
 	glog.Infof("starting the %s, %s", program, version)
 
-	go func() {
-		for {
-			s := <-sigChan
-			if s == syscall.SIGTERM {
-				os.Exit(0)
-			} 
-		}
-	}()
+	for {
+		s := <-sigChan
+		if s == syscall.SIGTERM {
+			glog.Infof("Received SIGTERM. Exit program")
+			os.Exit(0)
+		} 
+	}
 
 }
 
 func parseConfigs() error {
-	configs.vaultName = *flag.String("vaultName", getEnv("VAULT_NAME", ""), "Name of Azure Key Vault instance.")
-	configs.showVersion = *flag.Bool("version", true, "Show version.")
+	options.vaultName = *flag.String("vaultName", getEnv("VAULT_NAME", ""), "Name of Azure Key Vault instance.")
+	options.showVersion = *flag.Bool("version", true, "Show version.")
 
 	flag.Parse()
 
-	if configs.vaultName == "" {
-		return fmt.Errorf("VAULT_NAME is unset")
+	if options.vaultName == "" {
+		return fmt.Errorf("env VAULT_NAME is unset")
+	}
+
+	options.azConfig, _ = GetAzureAuthConfig(configFilePath)
+	if options.azConfig.SubscriptionID == "" {
+		return fmt.Errorf("Missing SubscriptionID in azure config")
 	}
 	return nil
 }
