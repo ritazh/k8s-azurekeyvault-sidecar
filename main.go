@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -13,8 +14,8 @@ import (
 	"syscall"
 	"github.com/golang/glog"
 	
-	// kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
-	// kv "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
+	kvmgmt "github.com/Azure/azure-sdk-for-go/services/keyvault/mgmt/2016-10-01/keyvault"
+	kv "github.com/Azure/azure-sdk-for-go/services/keyvault/2016-10-01/keyvault"
 	
 )
 
@@ -39,6 +40,7 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
 	sigChan := make(chan os.Signal, 1)
 	// register for SIGTERM (docker)
 	signal.Notify(sigChan, syscall.SIGTERM)
@@ -52,7 +54,27 @@ func main() {
 	}
 	glog.Infof("starting the %s, %s", program, version)
 
+	kvClient := kv.New()
+
+	vaultUrl, err := getVault(ctx, options.azConfig.SubscriptionID, options.vaultName)
+	if err != nil {
+		showError("failed to get key vault, error: %s", err)
+	}
+
+	token, err := GetKeyvaultToken(AuthGrantType(), configFilePath)
+	if err != nil {
+		showError("failed to get token, error: %s", err)
+	}
+	
+	kvClient.Authorizer = token
+
 	for {
+		secret, err := kvClient.GetSecret(ctx, *vaultUrl, "test", "")
+		if err != nil {
+			showError("failed to get secret, error: %s", err)
+		}
+		glog.Infof("secret: %s", *secret.Value)
+		
 		s := <-sigChan
 		if s == syscall.SIGTERM {
 			glog.Infof("Received SIGTERM. Exit program")
@@ -95,4 +117,25 @@ func showUsage(message string, args ...interface{}) {
 	}
 
 	os.Exit(0)
+}
+
+func showError(message string, args ...interface{}) {
+	if message != "" {
+		fmt.Printf("\n[error] "+message+"\n", args...)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func getVault(ctx context.Context, subscriptionID string, vaultName string) (vaultUrl *string, err error) {
+	vaultsClient := kvmgmt.NewVaultsClient(subscriptionID)
+	token, _ := GetManagementToken(AuthGrantType(), configFilePath)
+	vaultsClient.Authorizer = token
+	resourceGroup, err := GetResourceGroup(configFilePath)
+	vault, err := vaultsClient.Get(ctx, *resourceGroup, vaultName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get vault, error: %v", err)
+	}
+	return vault.Properties.VaultURI, nil
 }

@@ -2,8 +2,14 @@
 
 
 [[projects]]
+  name = "github.com/Azure/azure-sdk-for-go"
+  packages = ["services/keyvault/2016-10-01/keyvault","services/keyvault/mgmt/2016-10-01/keyvault","version"]
+  revision = "4650843026a7fdec254a8d9cf893693a254edd0b"
+  version = "v16.2.1"
+
+[[projects]]
   name = "github.com/Azure/go-autorest"
-  packages = ["autorest","autorest/adal","autorest/azure","autorest/date"]
+  packages = ["autorest","autorest/adal","autorest/azure","autorest/date","autorest/to","autorest/validation"]
   revision = "eaa7994b2278094c904d31993d26f56324db3052"
   version = "v10.8.1"
 
@@ -26,6 +32,12 @@
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
+  name = "github.com/satori/go.uuid"
+  packages = ["."]
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["pkcs12","pkcs12/internal/rc2"]
@@ -40,6 +52,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dc30a7a57fdbe9751a40057333cdbb159518e8362abe91069167f02e2c12801b"
+  inputs-digest = "17123bc54d9241faedddac3c71c1690c1462b1bafaf5025e8e30e1fe40de8380"
   solver-name = "gps-cdcl"
   solver-version = 1
