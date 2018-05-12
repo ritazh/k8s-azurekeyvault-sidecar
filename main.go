@@ -9,8 +9,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 	"github.com/golang/glog"
 	
@@ -20,15 +22,20 @@ import (
 )
 
 const (
-	program		= "k8s-azurekeyvault-sidecar"
-	version     = "0.0.1"
-	configFilePath  = "azure.json"
+	program					= "k8s-azurekeyvault-sidecar"
+	version     			= "0.0.1"
+	configFilePath  		= "azure.json"
+	permission  os.FileMode = 0400
 )
 
 // Option is a collection of configs
 type Option struct {
 	// the name of the Azure Key Vault instance
 	vaultName string
+	// the name of the Azure Key Vault secret
+	secretName string
+	// directory to save data
+	dir string
 	// version flag
 	showVersion bool
 	// azure configs 
@@ -68,30 +75,52 @@ func main() {
 	
 	kvClient.Authorizer = token
 
-	for {
-		secret, err := kvClient.GetSecret(ctx, *vaultUrl, "test", "")
-		if err != nil {
-			showError("failed to get secret, error: %s", err)
+	go func() {
+		for {
+			s := <-sigChan
+			if s == syscall.SIGTERM {
+				glog.Infof("Received SIGTERM. Exit program")
+				os.Exit(0)
+			} 
 		}
-		glog.Infof("secret: %s", *secret.Value)
-		
-		s := <-sigChan
-		if s == syscall.SIGTERM {
-			glog.Infof("Received SIGTERM. Exit program")
-			os.Exit(0)
-		} 
+	}()
+	
+	/// TODO: make this a loop later
+	secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.secretName, "")
+	if err != nil {
+		showError("failed to get secret, error: %s", err)
 	}
+	glog.Infof("secret: %s", *secret.Value)
+
+	_, err = os.Lstat(options.dir)
+	if err != nil {
+		showError("failed to get directory %s, error: %s", options.dir, err)
+	}
+
+	if err = ioutil.WriteFile(path.Join(options.dir, options.secretName), []byte(*secret.Value), permission); err != nil {
+		showError("azure KeyVault failed to write secret %s at %s with err %s", options.secretName, options.dir, err)
+	}
+	glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.secretName,options.dir)
+
 
 }
 
 func parseConfigs() error {
 	options.vaultName = *flag.String("vaultName", getEnv("VAULT_NAME", ""), "Name of Azure Key Vault instance.")
+	options.secretName = *flag.String("secretName", getEnv("SECRET_NAME", ""), "Name of Azure Key Vault secret.")
+	options.dir = *flag.String("dir", getEnv("DIR", ""), "Directory path to write data.")
 	options.showVersion = *flag.Bool("version", true, "Show version.")
 
 	flag.Parse()
 
 	if options.vaultName == "" {
 		return fmt.Errorf("env VAULT_NAME is unset")
+	}
+	if options.secretName == "" {
+		return fmt.Errorf("env SECRET_NAME is unset")
+	}
+	if options.dir == "" {
+		return fmt.Errorf("env DIR is unset")
 	}
 
 	options.azConfig, _ = GetAzureAuthConfig(configFilePath)
