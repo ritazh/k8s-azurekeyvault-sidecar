@@ -97,12 +97,15 @@ func main() {
 		showError("failed to get directory %s, error: %s", options.dir, err)
 	}
 
-	if err = ioutil.WriteFile(path.Join(options.dir, options.secretName), []byte(*secret.Value), permission); err != nil {
-		showError("azure KeyVault failed to write secret %s at %s with err %s", options.secretName, options.dir, err)
+	fileInfo, err := os.Lstat(path.Join(options.dir, options.secretName))
+	if fileInfo != nil {
+		glog.V(0).Infof("secret %s already exists in %s", options.secretName,options.dir)
+	} else {
+		if err = ioutil.WriteFile(path.Join(options.dir, options.secretName), []byte(*secret.Value), permission); err != nil {
+			showError("azure KeyVault failed to write secret %s at %s with err %s", options.secretName, options.dir, err)
+		}
+		glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.secretName,options.dir)
 	}
-	glog.V(0).Infof("azure KeyVault wrote secret %s at %s", options.secretName,options.dir)
-
-
 }
 
 func parseConfigs() error {
