@@ -7,4 +7,4 @@ WORKDIR /bin
 
 ADD ./k8s-azurekeyvault-sidecar /bin/k8s-azurekeyvault-sidecar
 
-CMD ["./k8s-azurekeyvault-sidecar"] 
+CMD ["/bin/k8s-azurekeyvault-sidecar", "-logtostderr=1"] 

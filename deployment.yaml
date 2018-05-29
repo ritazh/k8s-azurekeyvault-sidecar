@@ -19,8 +19,18 @@ spec:
             memory: 50Mi
         env:
         - name: VAULT_NAME
-          value: k8svaultsidecar
+          value: k8skv1
+        - name: SECRET_NAME
+          value: test
+        - name: RESOURCE_GROUP
+          value: ritakvrg
+        - name: CONFIG_FILEPATH
+          value: /etc/kubernetes/azure.json
+        - name: DIR
+          value: /etc/secrets
         volumeMounts:
+        - name: etc-kubernetes
+          mountPath: /etc/kubernetes
         - name: secrets
           mountPath: /etc/secrets
       - name: nginx
@@ -38,5 +48,8 @@ spec:
         - name: secrets
           mountPath: /etc/secrets
       volumes:
+      - name: etc-kubernetes
+        hostPath:
+          path: /etc/kubernetes
       - name: secrets
         emptyDir: {}
