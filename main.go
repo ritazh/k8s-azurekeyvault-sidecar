@@ -25,7 +25,8 @@ import (
 const (
 	program					= "k8s-azurekeyvault-sidecar"
 	version     			= "0.0.1"
-	permission  os.FileMode = 0400
+	permission  os.FileMode = 0644
+	cache					= 60
 )
 
 // Option is a collection of configs
@@ -80,8 +81,10 @@ func main() {
 		}
 	}()
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(cache * time.Second)
 	quit := make(chan struct{})
+	content := []byte("")
+
 	go func() {
 		for {
 			select {
@@ -89,24 +92,30 @@ func main() {
 				fileInfo, err := os.Lstat(path.Join(options.dir, options.secretName))
 				if fileInfo != nil && err == nil {
 					glog.V(0).Infof("secret %s already exists in %s", options.secretName,options.dir)
+					content, err = ioutil.ReadFile(path.Join(options.dir, options.secretName))
+					if err != nil {
+						showError("failed to read content from file, error: %s", err)
+					}
+				} 
+				vaultUrl, err := getVault(ctx, options.azConfig.SubscriptionID, options.vaultName, options.resourceGroup, options.configFilePath)
+				if err != nil {
+					showError("failed to get key vault, error: %s", err)
+				}
+
+				token, err := GetKeyvaultToken(AuthGrantType(), options.configFilePath)
+				if err != nil {
+					showError("failed to get token, error: %s", err)
+				}
+				
+				kvClient.Authorizer = token
+
+				secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.secretName, "")
+				if err != nil {
+					showError("failed to get secret, error: %s", err)
+				}
+				if string(content) == *secret.Value {
+					glog.V(0).Infof("secret %s content has not been updated", options.secretName)
 				} else {
-					vaultUrl, err := getVault(ctx, options.azConfig.SubscriptionID, options.vaultName, options.resourceGroup, options.configFilePath)
-					if err != nil {
-						showError("failed to get key vault, error: %s", err)
-					}
-
-					token, err := GetKeyvaultToken(AuthGrantType(), options.configFilePath)
-					if err != nil {
-						showError("failed to get token, error: %s", err)
-					}
-					
-					kvClient.Authorizer = token
-
-					secret, err := kvClient.GetSecret(ctx, *vaultUrl, options.secretName, "")
-					if err != nil {
-						showError("failed to get secret, error: %s", err)
-					}
-					glog.Infof("secret: %s", *secret.Value)
 					if err = ioutil.WriteFile(path.Join(options.dir, options.secretName), []byte(*secret.Value), permission); err != nil {
 						showError("azure KeyVault failed to write secret %s at %s with err %s", options.secretName, options.dir, err)
 					}
